@@ -263,17 +263,22 @@ impl ConstantPoolInfo {
     }
 }
 
-pub struct ClassReader {
-    file: File
+pub struct ClassReader<'a> {
+    reader: Box<Read + 'a>
 }
 
-impl ClassReader {
-    pub fn new_from_path(path: &str) -> Result<Class, ()> {
+impl<'a> ClassReader<'a> {
+
+    /*pub fn new_from_path(path: &str) -> Result<Class, ()> {
         let file = match File::open(path) {
             Result::Ok(f) => { f },
             Result::Err(_) => { panic!("blah") }
         };
-        let mut cr = ClassReader { file: file };
+        ClassReader::new_from_reader(&mut file)
+    }*/
+
+    pub fn new_from_reader<T: Read + 'a>(reader: &mut T) -> Result<Class, ()> {
+        let mut cr = ClassReader { reader: Box::new(reader) };
 
         let magic = cr.read_u32();
         let minor_version = cr.read_u16();
@@ -302,7 +307,7 @@ impl ClassReader {
         })
     }
 
-    fn read_attribute(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Attribute {
+    fn read_attribute(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Attribute {
         let name_index = self.read_u16();
         let length = self.read_u32();
 
@@ -563,7 +568,7 @@ impl ClassReader {
         }
     }
 
-    fn read_verification_type_info(self: &mut ClassReader) -> VerificationType {
+    fn read_verification_type_info(self: &mut ClassReader<'a>) -> VerificationType {
         let tag = self.read_u8();
         match tag {
             0 => VerificationType::Top,
@@ -585,7 +590,7 @@ impl ClassReader {
         }
     }
 
-    fn read_verification_type_infos(self: &mut ClassReader, num: u16) -> Vec<VerificationType> {
+    fn read_verification_type_infos(self: &mut ClassReader<'a>, num: u16) -> Vec<VerificationType> {
         let mut infos = Vec::with_capacity(num as usize);
         for _ in 0..num {
             let info = self.read_verification_type_info();
@@ -594,7 +599,7 @@ impl ClassReader {
         infos
     }
 
-    fn read_type_annotations(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<TypeAnnotation> {
+    fn read_type_annotations(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<TypeAnnotation> {
         let num_annotations = self.read_u16();
         let mut annotations = Vec::with_capacity(num_annotations as usize);
         for _ in 0..num_annotations {
@@ -604,7 +609,7 @@ impl ClassReader {
         annotations
     }
 
-    fn read_type_annotation(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> TypeAnnotation {
+    fn read_type_annotation(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> TypeAnnotation {
         let target_type_tag = self.read_u8();
         let target_type = match target_type_tag {
             0x00 => TargetType::Type,
@@ -713,7 +718,7 @@ impl ClassReader {
         }
     }
 
-    fn read_parameter_annotations(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Vec<Annotation>> {
+    fn read_parameter_annotations(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Vec<Annotation>> {
         let num_parameters = self.read_u8();
         let mut parameter_annotations = Vec::with_capacity(num_parameters as usize);
         for _ in 0..num_parameters {
@@ -723,7 +728,7 @@ impl ClassReader {
         parameter_annotations
     }
 
-    fn read_annotations(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Annotation> {
+    fn read_annotations(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Annotation> {
         let num_annotations = self.read_u16();
         let mut annotations = Vec::with_capacity(num_annotations as usize);
         for _ in 0..num_annotations {
@@ -733,7 +738,7 @@ impl ClassReader {
         annotations
     }
 
-    fn read_annotation(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Annotation {
+    fn read_annotation(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Annotation {
         let type_index = self.read_u16();
         let element_value_pairs = self.read_element_value_pairs(constant_pool);
         Annotation {
@@ -742,7 +747,7 @@ impl ClassReader {
         }
     }
 
-    fn read_element_value_pairs(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<ElementValuePair> {
+    fn read_element_value_pairs(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<ElementValuePair> {
         let num_evps = self.read_u16();
         let mut element_value_pairs = Vec::with_capacity(num_evps as usize);
         for _ in 0..num_evps {
@@ -758,7 +763,7 @@ impl ClassReader {
         element_value_pairs
     }
 
-    fn read_element_value(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> ElementValue {
+    fn read_element_value(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> ElementValue {
         let tag = self.read_u8() as char;
         match tag {
             'B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 's' => {
@@ -795,7 +800,7 @@ impl ClassReader {
         }
     }
 
-    fn read_attributes(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Attribute> {
+    fn read_attributes(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Attribute> {
         let attribute_count = self.read_u16();
         let mut attributes = Vec::with_capacity(attribute_count as usize);
         for _ in 0..attribute_count {
@@ -805,7 +810,7 @@ impl ClassReader {
         attributes
     }
 
-    fn read_methods(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Method> {
+    fn read_methods(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Method> {
         let method_count = self.read_u16();
         let mut methods = Vec::with_capacity(method_count as usize);
         for _ in 0..method_count {
@@ -825,7 +830,7 @@ impl ClassReader {
         methods
     }
 
-    fn read_fields(self: &mut ClassReader, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Field> {
+    fn read_fields(self: &mut ClassReader<'a>, constant_pool: &Vec<ConstantPoolInfo>) -> Vec<Field> {
         let field_count = self.read_u16();
         let mut fields = Vec::with_capacity(field_count as usize);
         for _ in 0..field_count {
@@ -845,7 +850,7 @@ impl ClassReader {
         fields
     }
 
-    fn read_interfaces(self: &mut ClassReader) -> Vec<u16> {
+    fn read_interfaces(self: &mut ClassReader<'a>) -> Vec<u16> {
         let interfaces_count = self.read_u16();
         let mut interfaces = Vec::with_capacity(interfaces_count as usize);
         for _ in 0..interfaces_count {
@@ -855,7 +860,7 @@ impl ClassReader {
         interfaces
     }
 
-    fn read_constant_pool(self: &mut ClassReader) -> Vec<ConstantPoolInfo> {
+    fn read_constant_pool(self: &mut ClassReader<'a>) -> Vec<ConstantPoolInfo> {
         let cp_count = self.read_u16() - 1;
         let mut cp: Vec<ConstantPoolInfo> = Vec::with_capacity(cp_count as usize);
 
@@ -875,7 +880,7 @@ impl ClassReader {
         cp
     }
 
-    fn read_constant_pool_info(self: &mut ClassReader) -> ConstantPoolInfo {
+    fn read_constant_pool_info(self: &mut ClassReader<'a>) -> ConstantPoolInfo {
         let tag = self.read_u8();
         match tag {
             1 => {
@@ -948,19 +953,18 @@ impl ClassReader {
         }
     }
 
-    fn read_bytes(self: &ClassReader, length: u32) -> Vec<u8> {
+    fn read_bytes(self: &mut ClassReader<'a>, length: u32) -> Vec<u8> {
         let mut vec: Vec<u8> = Vec::with_capacity(length as usize);
-        let file = &self.file;
-        match file.take(length as u64).read_to_end(&mut vec) {
+        match self.reader.by_ref().take(length as u64).read_to_end(&mut vec) {
             Result::Ok(_) => { },
             Result::Err(_) => { panic!("blah") }
         };
         vec
     }
 
-    fn read_u64(self: &mut ClassReader) -> u64 {
+    fn read_u64(self: &mut ClassReader<'a>) -> u64 {
         let mut buf = [0u8; 8];
-        match self.file.read(&mut buf) {
+        match self.reader.by_ref().read(&mut buf) {
             Result::Ok(_) => {},
             Result::Err(_) => { panic!("blah") }
         };
@@ -970,9 +974,9 @@ impl ClassReader {
                 | (buf[6] as u64) << 8 | (buf[7] as u64)
     }
 
-    fn read_u32(self: &mut ClassReader) -> u32 {
+    fn read_u32(self: &mut ClassReader<'a>) -> u32 {
         let mut buf = [0u8; 4];
-        match self.file.read(&mut buf) {
+        match self.reader.by_ref().read(&mut buf) {
             Result::Ok(_) => {},
             Result::Err(_) => { panic!("blah") }
         };
@@ -980,18 +984,18 @@ impl ClassReader {
                 | (buf[2] as u32) << 8 | (buf[3] as u32)
     }
 
-    fn read_u16(self: &mut ClassReader) -> u16 {
+    fn read_u16(self: &mut ClassReader<'a>) -> u16 {
         let mut buf = [0u8; 2];
-        match self.file.read(&mut buf) {
+        match self.reader.by_ref().read(&mut buf) {
             Result::Ok(_) => {},
             Result::Err(_) => { panic!("blah") }
         };
         (buf[0] as u16) << 8 | (buf[1] as u16)
     }
 
-    fn read_u8(self: &mut ClassReader) -> u8 {
+    fn read_u8(self: &mut ClassReader<'a>) -> u8 {
         let mut buf = [0u8; 1];
-        match self.file.read(&mut buf) {
+        match self.reader.by_ref().read(&mut buf) {
             Result::Ok(_) => {},
             Result::Err(_) => { panic!("blah") }
         };
