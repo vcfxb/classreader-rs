@@ -1,0 +1,4 @@
+[package]
+name = "classreader"
+version = "0.1.0"
+authors = ["Werner Hahn <werner_hahn@gmx.com>"]
