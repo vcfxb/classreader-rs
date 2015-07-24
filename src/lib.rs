@@ -1,5 +1,8 @@
 #![feature(convert)]
 
+#[macro_use]
+extern crate log;
+
 pub use self::model::*;
 
 mod model;
@@ -627,11 +630,13 @@ impl<'a> ClassReader<'a> {
 
     fn read_constant_pool_info(self: &mut ClassReader<'a>) -> ConstantPoolInfo {
         let tag = self.read_u8();
+        debug!("read constant pool info tag {}", tag);
         match tag {
             1 => {
                 let length = self.read_u16();
                 let data = self.read_bytes(length as u32);
-                let string = String::from_utf8(data).unwrap();
+                let string = read_modified_utf8(&data.clone());
+                trace!("read {} utf8 bytes {:?} -> {}", length, data, string);
                 ConstantPoolInfo::Utf8(string)
             },
             3 => {
@@ -747,4 +752,63 @@ impl<'a> ClassReader<'a> {
         buf[0] as u8
     }
 
+}
+
+fn read_modified_utf8(buf: &Vec<u8>) -> String {
+    let mut string = String::with_capacity(buf.len());
+
+    let mut i = 0;
+    while i < buf.len() {
+        let b0 = buf[i] as u32;
+        if (b0 >> 7) == 0 {
+            trace!("read byte {:08.b}", b0);
+            string.push(std::char::from_u32(b0).unwrap());
+        }
+        if (b0 >> 5) == 0b110 {
+            i += 1;
+            let b1 = buf[i] as u32; // assert that (b1 >> 6) == 0b10
+            let code_point = ((b0 & 0b0001_1111) << 6)
+                    + (b1 & 0b0011_1111);
+            trace!("read bytes {:08.b} {:08.b} -> {:032.b}", b0, b1, code_point);
+            string.push(std::char::from_u32(code_point).unwrap());
+        }
+        if (b0 >> 4) == 0b1110 {
+            i += 1;
+            let b1 = buf[i] as u32; // assert that (b1 >> 6) == 0b10
+            i += 1;
+            let b2 = buf[i] as u32; // assert that (b1 >> 6) == 0b10
+            let check_for_surrogate = i < (buf.len() - 2);
+            if (b0 == 0b11101101) && ((b1 >> 4) == 0b1010) && check_for_surrogate && (buf[i+1] == 0b1110_1101) { // surrogate pair
+                i += 1;
+                let b3 = buf[i] as u32; // assert that b3 == 0b1110_1101
+                i += 1;
+                let b4 = buf[i] as u32; // assert that (b4 >> 4) == b1011
+                i += 1;
+                let b5 = buf[i] as u32; // assert that (b5 >> 6) == b10
+                let code_point = 0b1_0000_0000_0000_0000
+                        + ((b1 & 0b0000_1111) << 16)
+                        + ((b2 & 0b0011_1111) << 10)
+                        + ((b4 & 0b0000_1111) << 6)
+                        + (b5 & 0x0011_1111);
+                trace!("read bytes {:08.b} {:08.b} {:08.b} {:08.b} {:08.b} {:08.b} -> {:032.b}", b0, b1, b2, b3, b4, b5, code_point);
+                trace!(" -> {} {:x}", code_point, code_point);
+                string.push(std::char::from_u32(code_point).unwrap());
+            } else {
+                let code_point = ((b0 & 0b0000_1111) << 12)
+                        + ((b1 & 0b0011_1111) << 6)
+                        + (b2 & 0b0011_1111);
+                if ((code_point >= 0xD800) && (code_point <= 0xDBFF))
+                        || ((code_point >= 0xDC00) && (code_point <= 0xDFFF)) {
+                    info!("encountered surrogate code point {:x} which is invalid for UTF-8", code_point);
+                    string.push('\u{FFFD}');
+                } else {
+                    trace!("read bytes {:08.b} {:08.b} {:08.b} -> {:032.b}", b0, b1, b2, code_point);
+                    trace!(" -> {} {:x}", code_point, code_point);
+                    string.push(std::char::from_u32(code_point).unwrap());
+                }
+            }
+        }
+        i += 1;
+    }
+    string
 }
