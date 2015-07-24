@@ -1,8 +1,13 @@
 [package]
 name = "classreader"
+description = "A Rust library that parses class files that conform to the Java Virtual Machine Specification."
 version = "0.1.0"
 authors = ["Werner Hahn <werner_hahn@gmx.com>"]
 license = "Apache-2.0"
+
+repository = "https://github.com/musiKk/classreader-rs"
+readme = "README.md"
+keywords = ["java", "parsing", "class"]
 
 [dependencies]
 log = "0.3.1"
