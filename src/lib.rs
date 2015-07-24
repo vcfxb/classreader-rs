@@ -616,6 +616,7 @@ impl<'a> ClassReader<'a> {
             cp.push(cp_info);
             if is_double_length {
                 cp.push(ConstantPoolInfo::Invalid);
+                i += 1;
             }
 
             i += 1;
