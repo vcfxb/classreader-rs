@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Werner Hahn <werner_hahn@gmx.com>"]
 
 [dependencies]
-log = "*"
+log = "0.3.1"
