@@ -11,3 +11,7 @@ keywords = ["java", "parsing", "class"]
 
 [dependencies]
 log = "0.3.1"
+
+[[example]]
+name = "dump_class"
+path = "examples/dump_class.rs"
