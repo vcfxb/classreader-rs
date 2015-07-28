@@ -5,6 +5,7 @@ extern crate log;
 
 mod model;
 mod result;
+mod decode;
 
 use std::char;
 use std::io::Read;
@@ -12,9 +13,11 @@ use std::fs::File;
 
 pub use self::result::*;
 pub use self::model::*;
+pub use self::decode::*;
 
 pub struct ClassReader<'a> {
-    reader: Box<Read + 'a>
+    reader: Box<Read + 'a>,
+    position: usize
 }
 
 impl<'a> ClassReader<'a> {
@@ -28,7 +31,7 @@ impl<'a> ClassReader<'a> {
     }
 
     pub fn new_from_reader<T: Read + 'a>(reader: &mut T) -> ParseResult<Class> {
-        let mut cr = ClassReader { reader: Box::new(reader) };
+        let mut cr = ClassReader { reader: Box::new(reader), position: 0 };
 
         let magic = try!(cr.read_u32());
         let minor_version = try!(cr.read_u16());
@@ -93,10 +96,12 @@ impl<'a> ClassReader<'a> {
                 }
                 let attributes = try!(self.read_attributes(constant_pool));
 
+                let instructions = try!(decode_code(&code));
+
                 Attribute::Code {
                     max_stack: max_stack,
                     max_locals: max_locals,
-                    code: code,
+                    code: instructions,
                     exception_table: exceptions,
                     attributes: attributes
                 }
@@ -726,12 +731,16 @@ impl<'a> ClassReader<'a> {
     fn read_bytes(self: &mut ClassReader<'a>, length: u32) -> ParseResult<Vec<u8>> {
         let mut vec: Vec<u8> = Vec::with_capacity(length as usize);
         try!(self.reader.by_ref().take(length as u64).read_to_end(&mut vec));
+
+        self.position += length as usize;
         Result::Ok(vec)
     }
 
     fn read_u64(self: &mut ClassReader<'a>) -> ParseResult<u64> {
         let mut buf: Vec<u8> = Vec::with_capacity(8);
         try!(self.reader.by_ref().take(8).read_to_end(&mut buf));
+
+        self.position += 8;
         Result::Ok((buf[0] as u64) << 56 | (buf[1] as u64) << 48
                 | (buf[2] as u64) << 40 | (buf[3] as u64) << 32
                 | (buf[4] as u64) << 24 | (buf[5] as u64) << 16
@@ -741,6 +750,8 @@ impl<'a> ClassReader<'a> {
     fn read_u32(self: &mut ClassReader<'a>) -> ParseResult<u32> {
         let mut buf: Vec<u8> = Vec::with_capacity(4);
         try!(self.reader.by_ref().take(4).read_to_end(&mut buf));
+
+        self.position += 4;
         Result::Ok((buf[0] as u32) << 24 | (buf[1] as u32) << 16
                 | (buf[2] as u32) << 8 | (buf[3] as u32))
     }
@@ -748,12 +759,16 @@ impl<'a> ClassReader<'a> {
     fn read_u16(self: &mut ClassReader<'a>) -> ParseResult<u16> {
         let mut buf: Vec<u8> = Vec::with_capacity(2);
         try!(self.reader.by_ref().take(2).read_to_end(&mut buf));
+
+        self.position += 2;
         Result::Ok((buf[0] as u16) << 8 | (buf[1] as u16))
     }
 
     fn read_u8(self: &mut ClassReader<'a>) -> ParseResult<u8> {
         let mut buf: Vec<u8> = Vec::with_capacity(1);
         try!(self.reader.by_ref().take(1).read_to_end(&mut buf));
+
+        self.position += 1;
         Result::Ok(buf[0] as u8)
     }
 

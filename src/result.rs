@@ -9,6 +9,7 @@ pub type ParseResult<T> = Result<T, ParseError>;
 pub enum ParseError {
     Io(io::Error),
     Format(String),
+    Decode(String),
     Generic
 }
 
@@ -23,7 +24,8 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_) => "I/O error",
             ParseError::Format(ref msg) => msg,
-            ParseError::Generic => "unknown error"
+            ParseError::Generic => "unknown error",
+            ParseError::Decode(ref msg) => msg
         }
     }
     fn cause(&self) -> Option<&error::Error> {
