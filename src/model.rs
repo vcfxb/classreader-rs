@@ -1,3 +1,19 @@
+macro_rules! modifier_raw {
+    ($name:ident, $field:ident, $mask:expr) => {
+        pub fn $name(&self) -> bool {
+            self.$field & $mask == $mask
+        }
+    }
+}
+
+macro_rules! modifier {
+    ($name:ident, $mask:expr) => { modifier_raw!($name, access_flags, $mask); }
+}
+
+macro_rules! modifier_inner {
+    ($name:ident, $mask:expr) => { modifier_raw!($name, inner_class_access_flags, $mask); }
+}
+
 #[derive(Debug)]
 pub struct Class {
     pub magic: u32,
@@ -11,6 +27,17 @@ pub struct Class {
     pub fields: Vec<Field>,
     pub methods: Vec<Method>,
     pub attributes: Vec<Attribute>
+}
+
+impl Class {
+    modifier!(is_public, 0x0001);
+    modifier!(is_final, 0x0010);
+    modifier!(is_super, 0x0020);
+    modifier!(is_interface, 0x0200);
+    modifier!(is_abstract, 0x0400);
+    modifier!(is_synthetic, 0x1000);
+    modifier!(is_annotation, 0x2000);
+    modifier!(is_enum, 0x4000);
 }
 
 #[derive(Debug)]
@@ -40,12 +67,39 @@ pub struct Field {
     pub attributes: Vec<Attribute>
 }
 
+impl Field {
+    modifier!(is_public, 0x0001);
+    modifier!(is_private, 0x0002);
+    modifier!(is_protected, 0x0004);
+    modifier!(is_static, 0x0008);
+    modifier!(is_final, 0x0010);
+    modifier!(is_volatile, 0x0040);
+    modifier!(is_transient, 0x0080);
+    modifier!(is_synthetic, 0x1000);
+    modifier!(is_enum, 0x4000);
+}
+
 #[derive(Debug)]
 pub struct Method {
     pub access_flags: u16,
     pub name_index: u16,
     pub descriptor_index: u16,
     pub attributes: Vec<Attribute>
+}
+
+impl Method {
+    modifier!(is_public, 0x0001);
+    modifier!(is_private, 0x0002);
+    modifier!(is_protected, 0x0004);
+    modifier!(is_static, 0x0008);
+    modifier!(is_final, 0x0010);
+    modifier!(is_synchronized, 0x0020);
+    modifier!(is_bridge, 0x0040);
+    modifier!(is_varargs, 0x0080);
+    modifier!(is_native, 0x01000);
+    modifier!(is_abstract, 0x0400);
+    modifier!(is_strict, 0x0800);
+    modifier!(is_synthetic, 0x1000);
 }
 
 #[derive(Debug)]
@@ -124,6 +178,19 @@ pub struct InnerClass {
     pub outer_class_info_index: u16,
     pub inner_name_index: u16,
     pub inner_class_access_flags: u16
+}
+
+impl InnerClass {
+    modifier_inner!(is_public, 0x0001);
+    modifier_inner!(is_private, 0x0002);
+    modifier_inner!(is_protected, 0x0004);
+    modifier_inner!(is_static, 0x0008);
+    modifier_inner!(is_final, 0x0010);
+    modifier_inner!(is_interface, 0x0200);
+    modifier_inner!(is_abstract, 0x0400);
+    modifier_inner!(is_synthetic, 0x1000);
+    modifier_inner!(is_annotation, 0x2000);
+    modifier_inner!(is_enum, 0x4000);
 }
 
 #[derive(Debug)]
