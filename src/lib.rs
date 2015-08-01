@@ -11,9 +11,9 @@ use std::char;
 use std::io::Read;
 use std::fs::File;
 
-pub use self::result::*;
-pub use self::model::*;
-pub use self::decode::*;
+pub use ::result::*;
+pub use ::model::*;
+pub use ::decode::*;
 
 pub struct ClassReader<'a> {
     reader: Box<Read + 'a>,
@@ -121,7 +121,10 @@ impl<'a> ClassReader<'a> {
                             let info = try!(self.read_verification_type_info());
                             StackMapFrame::SameLocals1StackItemFrame(info)
                         },
-                        128...246 => panic!(format!("reserved frame type {} used", frame_type)),
+                        128...246 => {
+                            let message = format!("reserved frame type {} used", frame_type);
+                            return Result::Err(ParseError::Format(message));
+                        }
                         247 => {
                             let offset_delta = try!(self.read_u16());
                             let info = try!(self.read_verification_type_info());
@@ -397,7 +400,10 @@ impl<'a> ClassReader<'a> {
             0x49 => TargetType::MethodArgument,
             0x4A => TargetType::MethodReferenceNewArgument,
             0x4B => TargetType::MethodReferenceArgument,
-            _ => panic!("unknown target type {}", target_type_tag)
+            _ => {
+                let message = format!("unknown target type {}", target_type_tag);
+                return Result::Err(ParseError::Format(message));
+            }
         };
         let target_info = match target_type_tag {
             0x00 | 0x01 => {
@@ -565,7 +571,8 @@ impl<'a> ClassReader<'a> {
                 ElementValue::Array(element_values)
             },
             _ => {
-                panic!("unknown element value tag {}", tag);
+                let message = format!("unknown element value tag {}", tag);
+                return Result::Err(ParseError::Format(message));
             }
         };
         Result::Ok(value)
@@ -722,7 +729,8 @@ impl<'a> ClassReader<'a> {
                 ConstantPoolInfo::InvokeDynamic(bootstrap_method_attr_index, name_and_type_index)
             },
             _ => {
-                panic!(format!("unknown constant pool item with tag {}", tag))
+                let message = format!("unknown constant pool item with tag {}", tag);
+                return Result::Err(ParseError::Format(message));
             }
         };
         Result::Ok(info)
