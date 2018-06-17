@@ -1,4 +1,3 @@
-#![feature(convert)]
 
 #[macro_use]
 extern crate log;
