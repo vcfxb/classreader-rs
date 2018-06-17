@@ -13,9 +13,8 @@ rust:
   - beta
   - nightly
 
-# See if this breaks stuff
-#services: docker
-#sudo: required
+services: docker
+sudo: required
 
 env:
   global:
