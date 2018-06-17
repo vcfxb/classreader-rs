@@ -1,17 +1,20 @@
 [package]
 name = "classreader"
-description = "A Rust library that parses class files that conform to the Java Virtual Machine Specification."
-version = "0.2.0"
-authors = ["Werner Hahn <werner_hahn@gmx.com>"]
+description = "A Rust library that reads, writes, and parses Java Virtula Machine class files."
+version = "0.2.1"
+authors = ["Werner Hahn <werner_hahn@gmx.com>", "Antonia Calia-Bogan <acaliabogan@gmail.com>"]
 license = "Apache-2.0"
-
-repository = "https://github.com/musiKk/classreader-rs"
+repository = "https://github.com/Wright-Language-Developers/classreader-rs"
+documentation = "https://docs.rs/classreader"
 readme = "README.md"
 keywords = ["java", "parsing", "class"]
 
 [dependencies]
 log = "0.3.1"
 
-[[example]]
-name = "dump_class"
-path = "examples/dump_class.rs"
+[badges]
+travis-ci = {repository = "Wright-Language-Developers/classreader-rs"}
+appveyor = {repository = "Wright-Language-Developers/classreader-rs"}
+is-it-maintained-issue-resolution = { repository = "Wright-Language-Developers/classreader-rs" }
+is-it-maintained-open-issues = { repository = "Wright-Language-Developers/classreader-rs" }
+maintenance = { status = "actively-developed" }
